@@ -12,17 +12,13 @@ class Stocks(APIView):
         if pk is not None:
             stock = get_object_or_404(Stock._default_manager, pk=pk)
             serializer = StockSerializer(stock)
-            print("line 15",serializer.data)
             return Response(serializer.data)
 
         stocks = Stock._default_manager.all()
-        print("line 18",stocks)
         serializer = StockSerializer(stocks, many=True)
-        print("line 22",serializer.data)
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        print("line no 22", request.data)
         serializer = StockSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
