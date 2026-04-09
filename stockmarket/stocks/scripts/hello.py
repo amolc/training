@@ -7,6 +7,35 @@ import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.subplots import make_subplots
 
+from tvDatafeed import TvDatafeed, Interval
+
+
+def normalize_market_data(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None or df.empty:
+        return pd.DataFrame()
+
+    normalized = df.copy()
+    normalized.columns = [str(col).strip() for col in normalized.columns]
+    rename_map = {
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "close": "Close",
+        "volume": "Volume",
+        "Open": "Open",
+        "High": "High",
+        "Low": "Low",
+        "Close": "Close",
+        "Volume": "Volume",
+    }
+    normalized = normalized.rename(columns=rename_map)
+    if "datetime" in normalized.columns:
+        normalized["datetime"] = pd.to_datetime(normalized["datetime"])
+        normalized = normalized.set_index("datetime")
+    normalized.index = pd.to_datetime(normalized.index)
+    normalized.index.name = "Datetime"
+    return normalized
+
 
 def flatten_ohlcv(data: pd.DataFrame) -> pd.DataFrame:
     if isinstance(data.columns, pd.MultiIndex):
@@ -23,6 +52,19 @@ def flatten_ohlcv(data: pd.DataFrame) -> pd.DataFrame:
     data.columns.name = None
     data.index = pd.to_datetime(data.index)
     data.index.name = "Datetime"
+    return data
+
+
+def tvdata():
+    tv = TvDatafeed()
+    data = tv.get_hist(
+        symbol="NIFTY",
+        exchange="NSE",
+        interval=Interval.in_1_minute,
+        n_bars=100,
+    )
+    data = normalize_market_data(data)
+    print(data.tail())
     return data
 
 
@@ -53,6 +95,10 @@ def multiplestocks():
 
 def addfeatures(df):
     df = df.copy()
+    if "Close" not in df.columns:
+        raise ValueError(
+            f"Close column missing. Available columns: {list(df.columns)}"
+        )
     df["ma9"] = df["Close"].rolling(9).mean()
     df["ma21"] = df["Close"].rolling(21).mean()
     return df
@@ -320,7 +366,7 @@ def createchart(df: pd.DataFrame):
 
 
 def run():
-    df = getdata()
+    df = tvdata()
     df = addfeatures(df)
     df = crossover(df)
     report = calculateprofitloss(df)
