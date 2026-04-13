@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 *.sqlite3
 .DS_Store
+gsheets.json

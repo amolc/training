@@ -1,0 +1,9 @@
+django
+djangorestframework
+django-extensions
+pandas
+numpy
+plotly
+yfinance
+tvdatafeed
+pandas-ta
