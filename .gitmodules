@@ -1,0 +1,3 @@
+[submodule "stockmarket/vedant/scripts"]
+	path = stockmarket/vedant/scripts
+	url = https://github.com/amolc/training.git
