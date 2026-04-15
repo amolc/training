@@ -40,9 +40,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'members',
+    'django_extensions',
+    'corsheaders',
     'stocks',
-    'django_extensions'
+    'members',
+    'vedant',
+    'yukta',
 ]
 
 MIDDLEWARE = [

@@ -5,11 +5,13 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
 import pygsheets
+from yukta.services import save_df_to_db
 
 # GET DATA
 def get_tv_data(symbol="BTCUSD", exchange="COINBASE",
-                interval=Interval.in_5_minute, n_bars=500):
+                interval=Interval.in_5_minute, n_bars=2000):
     try:
+        print(f"Fetching data for {symbol} from {exchange} with interval {interval}...")
         tv = TvDatafeed()
 
         df = tv.get_hist(
@@ -36,6 +38,7 @@ def get_tv_data(symbol="BTCUSD", exchange="COINBASE",
         })
 
         df["Date"] = pd.to_datetime(df["Date"])
+        df["Stock"]=symbol
         df = df.sort_values("Date")
 
         return df
@@ -61,6 +64,7 @@ def convert_to_heikin_ashi(df):
         df["HA_High"] = df[["High", "HA_Open", "HA_Close"]].max(axis=1)
         df["HA_Low"] = df[["Low", "HA_Open", "HA_Close"]].min(axis=1)
 
+        print("Heikin Ashi conversion complete.")
         return df
     
     except Exception as e:
@@ -80,7 +84,7 @@ def add_features(df):
         df["EMA_HIGH"] = df["High"].ewm(span=20, adjust=False).mean()
         df["EMA_LOW"] = df["Low"].ewm(span=20, adjust=False).mean()
 
-
+        print("EMA calculation complete.")
         return df
 
     except Exception as e:
@@ -91,12 +95,17 @@ def add_features(df):
 # CROSSOVER
 def generate_signals(df):
     try:
+        print("Generating trading signals based on strategy rules...")
         df = df.copy()
 
         df["signal"] = None
         df["position"] = None
 
         position = None  # None / BUY / SELL
+        entry_price = 0
+
+        stop_loss = 0.005   #0.5% stop loss
+        target_profit = 0.01  #1% target profit
 
         for i in range(len(df)):
             row = df.iloc[i]
@@ -104,44 +113,95 @@ def generate_signals(df):
             close = row["HA_Close"]   # using Heikin Ashi close
             ema_high = row["EMA_HIGH"]
             ema_low = row["EMA_LOW"]
+            time = row["Date"].strftime("%Y-%m-%d %H:%M")
+
 
             # ======================
             # NO POSITION
             # ======================
             if position is None:
+                #generate signal stop loss of 0.005
 
                 # BUY ENTRY
                 if close > ema_high:
                     df.loc[i, "signal"] = "BUY"
                     position = "BUY"
+                    entry_price = close
+                    print(f"{time} → BUY at {round(close, 2)}")
+
 
                 # SELL ENTRY
                 elif close < ema_low:
                     df.loc[i, "signal"] = "SELL"
                     position = "SELL"
+                    entry_price = close
+                    print(f"{time} → SELL at {round(close, 2)}")
+
 
             # ======================
             # BUY POSITION
             # ======================
             elif position == "BUY":
 
-                # EXIT BUY
-                if close < ema_high:
-                    df.loc[i, "signal"] = "EXIT_BUY"
+                stop_loss_price = entry_price * (1 - stop_loss)  # stop loss price is 0.005 below entry price
+                target_profit_price = entry_price * (1 + target_profit)  # target profit price is 1% above entry price
+
+                #STOP LOSS HIT
+                if close <= stop_loss_price:
+                    df.loc[i, "signal"] = "STOP_LOSS_BUY"
                     position = None
+
+                    print(f"{time} → STOP LOSS BUY at {round(close, 2)}")
+
+
+                #TARGET HIT
+                elif close >= target_profit_price:
+                    df.loc[i, "signal"] = "TARGET_PROFIT_BUY"
+                    position = None
+
+                    print(f"{time} → TARGET BUY at {round(close, 2)}")
+
+
+                # EXIT BUY
+                elif close < ema_high:
+                    #close when profit is 0.01%
+                        df.loc[i, "signal"] = "EXIT_BUY"
+                        position = None
+                        print(f"{time} → EXIT BUY at {round(close, 2)}")
+
 
             # ======================
             # SELL POSITION
             # ======================
             elif position == "SELL":
 
+                stop_loss_price = entry_price * (1 + stop_loss)  # stop loss price is 0.005 above entry price
+                target_profit_price = entry_price * (1 - target_profit)  # target profit price is 1% below entry price
+
+                #STOP LOSS HIT
+                if close >= stop_loss_price:
+                    df.loc[i, "signal"] = "STOP_LOSS_SELL"
+                    position = None
+                    print(f"{time} → STOP LOSS SELL at {round(close, 2)}")
+
+
+                #TARGET HIT
+                elif close <= target_profit_price:
+                    df.loc[i, "signal"] = "TARGET_PROFIT_SELL"
+                    position = None
+                    print(f"{time} → TARGET SELL at {round(close, 2)}")
+
+
                 # EXIT SELL
-                if close > ema_low:
+                elif close > ema_low:
                     df.loc[i, "signal"] = "EXIT_SELL"
                     position = None
+                    print(f"{time} → EXIT SELL at {round(close, 2)}")
+
 
             df.loc[i, "position"] = position
 
+        save_df_to_db(df)
         return df
 
     except Exception as e:
@@ -171,20 +231,32 @@ def generate_trade_summary(df):
                 position = "BUY"
                 entry_price = price
                 entry_time = time
+                
 
             elif signal == "SELL" and position is None:
                 position = "SELL"
                 entry_price = price
                 entry_time = time
+                
 
             # ======================
             # EXIT BUY
             # ======================
-            elif signal == "EXIT_BUY" and position == "BUY":
+            elif signal in ["EXIT_BUY", "TARGET_PROFIT_BUY", "STOP_LOSS_BUY"] and position == "BUY":
                 exit_price = price
                 exit_time = time
 
                 profit = exit_price - entry_price
+
+                #EXIT TYPE
+                if signal == "STOP_LOSS_BUY":
+                    exit_type = "STOP_LOSS"
+                elif signal in ["TARGET_PROFIT_BUY"]:   
+                    exit_type = "TARGET_PROFIT"
+                else:
+                    exit_type = "TREND EXIT"
+
+                
 
                 trades.append({
                     "Type": "BUY",
@@ -192,7 +264,8 @@ def generate_trade_summary(df):
                     "Exit Time": exit_time,
                     "Entry Price": entry_price,
                     "Exit Price": exit_price,
-                    "Profit/Loss": profit
+                    "Profit/Loss": profit,
+                    "Exit Type": exit_type
                 })
 
                 position = None
@@ -200,19 +273,29 @@ def generate_trade_summary(df):
             # ======================
             # EXIT SELL
             # ======================
-            elif signal == "EXIT_SELL" and position == "SELL":
+            elif signal in ["EXIT_SELL", "TARGET_PROFIT_SELL", "STOP_LOSS_SELL"] and position == "SELL":
                 exit_price = price
                 exit_time = time
 
                 profit = entry_price - exit_price  # IMPORTANT (reverse for SELL)
 
+                #EXIT TYPE
+                if signal == "STOP_LOSS_SELL":
+                    exit_type = "STOP_LOSS"
+                elif signal in ["TARGET_PROFIT_SELL"]:      
+                    exit_type = "TARGET_PROFIT"
+                else:
+                    exit_type = "TREND EXIT"
+
+               
                 trades.append({
                     "Type": "SELL",
                     "Entry Time": entry_time,
                     "Exit Time": exit_time,
                     "Entry Price": entry_price,
                     "Exit Price": exit_price,
-                    "Profit/Loss": profit
+                    "Profit/Loss": profit,
+                    "Exit Type": exit_type
                 })
 
                 position = None
@@ -236,7 +319,8 @@ def generate_trade_summary(df):
                 "Exit Time": exit_time,
                 "Entry Price": entry_price,
                 "Exit Price": exit_price,
-                "Profit/Loss": profit
+                "Profit/Loss": profit,
+                "Exit Type": "TREND EXIT"
             })
 
         # ======================
@@ -294,6 +378,38 @@ def print_trade_summary(trades, summary):
             print(f"Max Profit: {round(max_profit, 2)}")
             print(f"Max Loss: {round(max_loss, 2)}")
 
+    # ======================
+            # EXIT TYPE ANALYSIS
+            # ======================
+            print("\n📊 EXIT TYPE ANALYSIS")
+
+            exit_counts = trades_df["Exit Type"].value_counts()
+            print(exit_counts)
+
+            # ======================
+            # WIN RATE BY TYPE
+            # ======================
+            print("\n📈 WIN RATE BY EXIT TYPE")
+
+            for exit_type in trades_df["Exit Type"].unique():
+                subset = trades_df[trades_df["Exit Type"] == exit_type]
+
+                wins = len(subset[subset["Profit/Loss"] > 0])
+                total = len(subset)
+
+                win_rate = (wins / total * 100) if total > 0 else 0
+
+                print(f"{exit_type} → {round(win_rate, 2)}% win rate")
+
+            # ======================
+            # PROFIT BY TYPE
+            # ======================
+            print("\n💰 PROFIT BY EXIT TYPE")
+
+            profit_by_type = trades_df.groupby("Exit Type")["Profit/Loss"].sum()
+
+            print(profit_by_type)
+
     except Exception as e:
         print(f"[ERROR] Printing Failed: {e}")
 
@@ -312,13 +428,7 @@ def save_to_google_sheet(df, trades, summary):
         wks1 = sh[0]
         wks1.clear()
 
-        full_df = df[[
-            "Date",
-            "Open", "High", "Low", "Close",
-            "HA_Open", "HA_High", "HA_Low", "HA_Close",
-            "EMA_HIGH", "EMA_LOW",
-            "signal"
-        ]].copy()
+        full_df = df.copy()
 
         wks1.set_dataframe(full_df, (1, 1))
 
@@ -326,8 +436,8 @@ def save_to_google_sheet(df, trades, summary):
         # SHEET 1 → TRADES + SUMMARY
         # =========================
         # Ensure sheet exists
-        if len(sh.worksheets()) < 2:
-            sh.add_worksheet("Sheet2")
+        if len(sh.worksheets()) < 3:
+            sh.add_worksheet(f"Sheet{len(sh.worksheets())+1}")
 
         wks2 = sh[1]
         wks2.clear()
@@ -342,9 +452,16 @@ def save_to_google_sheet(df, trades, summary):
         else:
             start_row = 2
 
-        # ---- WRITE SUMMARY ----
-        wks2.update_value(f"A{start_row-1}", "SUMMARY")
-        wks2.set_dataframe(summary, (start_row, 1))
+        # SHEET 2 - WRITE SUMMARY ----
+        wks3 = sh[2]
+        wks3.clear()
+        wks3.set_dataframe(summary, (1, 1))
+
+        if summary is not None:
+            wks3.update_value("A1", "SUMMARY")
+            wks3.set_dataframe(summary, (2, 1))
+        else:
+            wks3.update_value("A1", "NO SUMMARY")
 
         print("[SUCCESS] Data + Trades + Summary saved to Google Sheets")
 
@@ -457,17 +574,19 @@ def plot(df):
 def run():
     try:
         df = get_tv_data()
+        
         df = convert_to_heikin_ashi(df)
 
         if df is None:
             print("[STOP] No data available")
             return
 
-        print("Data loaded")
+        print("Data loaded successfully.")
 
         
         df = add_features(df)
         df = generate_signals(df)
+        save_df_to_db(df)
 
         save_data(df)
         plot(df)
