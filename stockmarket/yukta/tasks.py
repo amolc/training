@@ -1,3 +1,7 @@
+import os
+
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "stockmarket.settings")
 
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
@@ -10,7 +14,13 @@ def run_strategy():
     from yukta.services.backtest import run_backtest
     print("🚀 Task Started...")
 
-    result = run_backtest()
+    result = run_backtest(
+        params={
+            "symbol": "BTCUSD",
+            "enable_telegram_alerts": True,
+        },
+        send_alerts=True,
+    )
 
     BacktestResult.objects.create(
         chart=result["chart"],

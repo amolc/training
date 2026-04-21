@@ -1,308 +1,433 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Backtest Dashboard</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yukta Strategy Dashboard</title>
 <style>
+* { box-sizing: border-box; }
 body {
-    margin:0;
-    display:flex;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg,#020617,#020c1b);
-    color:white;
+    margin: 0;
+    background: radial-gradient(circle at 20% 10%, #111827 0, #04070f 45%, #02040a 100%);
+    color: #e5e7eb;
+    font-family: "Segoe UI", Arial, sans-serif;
 }
-
-/* SIDEBAR */
-.sidebar {
-    width:220px;
-    background:#020617;
-    padding:20px;
-    border-right:1px solid #1e293b;
+a { color: inherit; text-decoration: none; }
+.page {
+    max-width: 1500px;
+    margin: 18px auto;
+    padding: 0 14px 40px;
 }
-
-.sidebar h2 { color:#38bdf8; }
-
-.sidebar a {
-    display:block;
-    padding:10px;
-    margin:10px 0;
-    color:#94a3b8;
-    text-decoration:none;
-    border-radius:8px;
-}
-
-.sidebar a:hover {
-    background:#0f172a;
-    color:white;
-}
-
-/* MAIN */
-.main {
-    flex:1;
-    padding:20px 30px;
-}
-
-/* TOP BAR */
 .topbar {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:20px;
+    background: #080c16;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 0 25px rgba(34, 197, 94, 0.08);
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
-
-.strategy {
-    background:#0f172a;
-    padding:10px 15px;
-    border-radius:10px;
+.brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f8fafc;
 }
-
+.brand span { color: #f59e0b; }
+.meta { color: #93c5fd; font-size: 13px; }
 .btn {
-    background:linear-gradient(135deg,#3b82f6,#6366f1);
-    padding:10px 20px;
-    border:none;
-    border-radius:10px;
-    color:white;
-    cursor:pointer;
+    border: 1px solid #365314;
+    background: linear-gradient(135deg, #0f172a, #052e16);
+    color: #86efac;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
 }
-
-/* CARDS */
+.layout {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 14px;
+}
+.sidebar {
+    position: sticky;
+    top: 12px;
+    height: fit-content;
+    background: #070b14;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 12px;
+}
+.side-title {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 0 0 8px;
+}
+.sidebar a {
+    display: block;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-size: 13px;
+}
+.sidebar a:hover { border-color: #334155; background: #0f172a; }
+.content { min-width: 0; }
 .card {
-    background:#0f172a;
-    padding:20px;
-    border-radius:12px;
-    margin-bottom:25px;
+    background: linear-gradient(180deg, #0a1020 0, #050913 100%);
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.08), 0 0 25px rgba(16, 185, 129, 0.04) inset;
 }
-
-/* ROI SPECIAL */
-.roi-card {
-    background: linear-gradient(135deg,#022c22,#020617);
-    border:1px solid #064e3b;
+.card h3 {
+    margin: 0 0 10px;
+    color: #f8fafc;
+    font-size: 24px;
 }
-
-/* STATS */
+.sub { margin: 0 0 12px; color: #9ca3af; font-size: 12px; }
 .stats {
-    display:flex;
-    gap:15px;
-    margin-bottom:20px;
-    flex-wrap:wrap;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
 }
-
+.roi-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
 .stat {
-    flex:1;
-    background:#020617;
-    padding:15px;
-    border-radius:10px;
-    min-width:150px;
+    background: #070b14;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 10px;
 }
-
-.stat h4 {
-    color:#94a3b8;
-    margin-bottom:5px;
+.strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 12px;
 }
-
-/* TABLE */
-table {
-    width:100%;
-    border-collapse:collapse;
+.strategy-box {
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 12px;
+    background: #070b14;
 }
-
-th, td {
-    padding:10px;
-    border-bottom:1px solid #1e293b;
+.strategy-box.buy {
+    border-color: #365314;
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.08), rgba(7, 11, 20, 0.9));
 }
-
-.green { color:#22c55e; }
-.red { color:#ef4444; }
-
+.strategy-box.sell {
+    border-color: #7f1d1d;
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.08), rgba(7, 11, 20, 0.9));
+}
+.strategy-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 10px;
+}
+.strategy-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(80px, 1fr));
+    gap: 10px;
+}
+.stat .k { font-size: 11px; color: #94a3b8; }
+.stat .v { margin-top: 5px; font-size: 26px; font-weight: 700; }
+.green { color: #4ade80; }
+.red { color: #f87171; }
 .empty {
-    color:#64748b;
-    text-align:center;
-    padding:20px;
+    color: #64748b;
+    text-align: center;
+    padding: 16px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+th, td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #1f2937;
+    text-align: left;
+}
+th { color: #a5b4fc; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid;
+}
+.buy { color: #4ade80; border-color: #14532d; background: rgba(34, 197, 94, 0.12); }
+.sell { color: #fca5a5; border-color: #7f1d1d; background: rgba(239, 68, 68, 0.12); }
+#modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(3px);
+}
+.modal-card {
+    width: min(520px, 92vw);
+    margin: 60px auto;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 18px;
+}
+input {
+    width: 100%;
+    margin: 4px 0 10px;
+    background: #020617;
+    color: #e5e7eb;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 8px;
+}
+.actions { display: flex; gap: 8px; margin-top: 8px; }
+@media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; }
+    .stats { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    .roi-metrics { grid-template-columns: 1fr; }
+    .strategy-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
-
 <body>
-
-<!-- SIDEBAR -->
-<div class="sidebar">
-    <h2>Yukta</h2>
-    <a href="#">Dashboard</a>
-    <a href="#">ROI Graph</a>
-    <a href="#">Trade Logs</a>
-</div>
-
-<!-- MAIN -->
-<div class="main">
-
-<!-- TOP BAR -->
-<div class="topbar">
-    <div class="strategy">
-        {{ result.strategy|default:"EMA Alligator Strategy" }}
+{% load tz %}
+<div class="page">
+    <div class="topbar">
+        <div>
+            <div class="brand">Dashboard</div>
+            <div class="meta">EMA Alligator Strategy Dashboard</div>
+        </div>
+        <div class="meta">
+            Last Updated:
+            {% if latest %}
+                {{ latest.created_at|timezone:"Asia/Kolkata"|date:"Y-m-d H:i:s" }} IST
+            {% else %}
+                No data yet
+            {% endif %}
+        </div>
+        <button class="btn" onclick="openModal()">Run Backtest</button>
     </div>
 
-    <div style="color:#22c55e; font-size:14px;">
-        Last Updated:
-        {% if latest %}
-            {{ latest.created_at|date:"Y-m-d H:i:s" }}
-        {% else %}
-            No data yet
-        {% endif %}
+    <div class="layout">
+        <div class="sidebar">
+            <p class="side-title">SECTIONS</p>
+            <a href="#graph">Graph</a>
+            <a href="#roi">ROI Graph</a>
+            <a href="#profitloss">Profitloss</a>
+            <a href="#stats">Stats</a>
+            <a href="#strategy-runs">Strategy-Runs</a>
+            <a href="#trades">Trade Logs</a>
+        </div>
+
+        <div class="content">
+            <div class="card" id="graph">
+                <h3>Strategy Details</h3>
+                <p class="sub">Live backtest output with entries and exits.</p>
+                {% if result.chart %}
+                    {{ result.chart|safe }}
+                {% else %}
+                    <div class="empty">No chart available yet.</div>
+                {% endif %}
+            </div>
+
+            <div class="card" id="roi">
+                <h3>ROI Graph</h3>
+                <p class="sub">Cumulative ROI performance.</p>
+                <div class="roi-metrics">
+                    <div class="stat">
+                        <div class="k">ROI (OVERALL)</div>
+                        <div class="v {% if result.roi_overall >= 0 %}green{% else %}red{% endif %}">
+                            {{ result.roi_overall|default:0 }}%
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="k">TOTAL PNL</div>
+                        <div class="v {% if result.total_pnl >= 0 %}green{% else %}red{% endif %}">
+                            ${{ result.total_pnl|default:0 }}
+                        </div>
+                    </div>
+                    <div class="stat">
+                        <div class="k">STRATEGY RUNS</div>
+                        <div class="v green">{{ result.total_trades|default:0 }}</div>
+                    </div>
+                </div>
+                {% if result.roi_chart %}
+                    {{ result.roi_chart|safe }}
+                {% else %}
+                    <div class="empty">No ROI data available yet.</div>
+                {% endif %}
+            </div>
+
+            <div class="card" id="profitloss">
+                <h3>Profitloss</h3>
+                <p class="sub">Buy and sell closed trades ordered by close time.</p>
+                {% if result.profitloss_chart %}
+                    {{ result.profitloss_chart|safe }}
+                {% else %}
+                    <div class="empty">No profit/loss chart data available yet.</div>
+                {% endif %}
+            </div>
+
+            <div class="card" id="stats">
+                <h3>Stats</h3>
+                <p class="sub">Summary metrics from latest run.</p>
+                <div class="roi-metrics">
+                    <div class="stat">
+                        <div class="k">TOTAL SIGNALS</div>
+                        <div class="v green">{{ result.total_signals|default:0 }}</div>
+                    </div>
+                    <div class="stat">
+                        <div class="k">BUY SIGNALS</div>
+                        <div class="v green">{{ result.buy_signals|default:0 }}</div>
+                    </div>
+                    <div class="stat">
+                        <div class="k">SELL SIGNALS</div>
+                        <div class="v {% if result.sell_signals > 0 %}red{% else %}green{% endif %}">{{ result.sell_signals|default:0 }}</div>
+                    </div>
+                </div>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="k">TOTAL PNL</div>
+                        <div class="v {% if result.total_pnl >= 0 %}green{% else %}red{% endif %}">${{ result.total_pnl|default:0 }}</div>
+                    </div>
+                    <div class="stat">
+                        <div class="k">OVERALL ROI</div>
+                        <div class="v {% if result.roi_overall >= 0 %}green{% else %}red{% endif %}">{{ result.roi_overall|default:0 }}%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="strategy-runs">
+                <h3>Strategy-Runs</h3>
+                <p class="sub">Summary from buy and sell strategy runs.</p>
+                <div class="strategy-grid">
+                    <div class="strategy-box buy">
+                        <p class="strategy-title green">Buy Strategy</p>
+                        <div class="strategy-row">
+                            <div class="stat">
+                                <div class="k">RUNS</div>
+                                <div class="v green">{{ result.buy_strategy.runs|default:0 }}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="k">AVG PRICE</div>
+                                <div class="v">${{ result.buy_strategy.avg_price|default:0 }}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="k">DURATION</div>
+                                <div class="v">{{ result.buy_strategy.duration|default:"0m" }}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="k">PNL</div>
+                                <div class="v {% if result.buy_strategy.pnl >= 0 %}green{% else %}red{% endif %}">
+                                    ${{ result.buy_strategy.pnl|default:0 }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="strategy-box sell">
+                        <p class="strategy-title red">Sell Strategy</p>
+                        <div class="strategy-row">
+                            <div class="stat">
+                                <div class="k">RUNS</div>
+                                <div class="v red">{{ result.sell_strategy.runs|default:0 }}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="k">AVG PRICE</div>
+                                <div class="v">${{ result.sell_strategy.avg_price|default:0 }}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="k">DURATION</div>
+                                <div class="v">{{ result.sell_strategy.duration|default:"0m" }}</div>
+                            </div>
+                            <div class="stat">
+                                <div class="k">PNL</div>
+                                <div class="v {% if result.sell_strategy.pnl >= 0 %}green{% else %}red{% endif %}">
+                                    ${{ result.sell_strategy.pnl|default:0 }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="trades">
+                <h3>Trade Logs</h3>
+                <p class="sub">Buy and sell trades generated by strategy.</p>
+                {% if result.trades %}
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Side</th>
+                                    <th>Open Time</th>
+                                    <th>Close Time</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>PnL</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trade in result.trades %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <span class="badge {% if trade.type == 'BUY' %}buy{% else %}sell{% endif %}">
+                                            {{ trade.type }}
+                                        </span>
+                                    </td>
+                                    <td>{{ trade.entry_time|default:"-" }}</td>
+                                    <td>{{ trade.exit_time|default:"-" }}</td>
+                                    <td>{{ trade.entry }}</td>
+                                    <td>{{ trade.exit }}</td>
+                                    <td class="{% if trade.pnl >= 0 %}green{% else %}red{% endif %}">{{ trade.pnl }}</td>
+                                    <td>{% if trade.pnl >= 0 %}PROFIT{% else %}LOSS{% endif %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty">Run backtest once to populate trade logs.</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    <button class="btn" onclick="openModal()">🔄 Run Backtest</button>
 </div>
 
-<!-- PRICE CHART -->
-<div class="card">
-    <h3>📈 Price Chart</h3>
-
-    <div class="stats">
-        <div class="stat">
-            <h4>ROI</h4>
-            <p class="{% if result.roi_overall > 0 %}green{% else %}red{% endif %}">
-                {{ result.roi_overall }}%
-            </p>
-        </div>
-
-        <div class="stat">
-            <h4>Win Rate</h4>
-            <p>{{ result.win_rate }}%</p>
-        </div>
-
-        <div class="stat">
-            <h4>Total PnL</h4>
-            <p class="{% if result.total_pnl > 0 %}green{% else %}red{% endif %}">
-                {{ result.total_pnl }}
-            </p>
-        </div>
-
-        <div class="stat">
-            <h4>Trades</h4>
-            <p>{{ result.total_trades }}</p>
-        </div>
+<div id="modal">
+    <div class="modal-card">
+        <h3 style="margin-top:0;">Run Backtest</h3>
+        <form method="get" action="{% url 'run_backtest' %}">
+            <label>Investment</label>
+            <input type="number" name="investment" value="1000">
+            <label>EMA 8</label>
+            <input type="number" name="ema_8" value="8">
+            <label>EMA 14</label>
+            <input type="number" name="ema_14" value="14">
+            <label>EMA 50</label>
+            <input type="number" name="ema_50" value="50">
+            <label>Lips Period</label>
+            <input type="number" name="lips_period" value="5">
+            <label>Lips Shift</label>
+            <input type="number" name="lips_shift" value="3">
+            <div class="actions">
+                <button type="submit" class="btn">Run</button>
+                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+            </div>
+        </form>
     </div>
-
-    {{ result.chart|safe }}
-</div>
-
-<!-- ROI DASHBOARD -->
-<div class="card roi-card">
-
-    <h3>📊 ROI Graph</h3>
-    <p style="color:#94a3b8;">The cumulative ROI from start</p>
-
-    <div class="stats">
-
-        <div class="stat">
-            <h4>ROI (Overall)</h4>
-            <p class="{% if result.roi_overall > 0 %}green{% else %}red{% endif %}">
-                {{ result.roi_overall }}%
-            </p>
-        </div>
-
-        <div class="stat">
-            <h4>Total PnL</h4>
-            <p class="{% if result.total_pnl > 0 %}green{% else %}red{% endif %}">
-                {{ result.total_pnl }}
-            </p>
-        </div>
-
-        <div class="stat">
-            <h4>Strategy Runs</h4>
-            <p class="green">
-                {{ result.total_trades }}
-            </p>
-        </div>
-
-    </div>
-
-    <!-- ROI GRAPH -->
-    {% if result.roi_chart %}
-        {{ result.roi_chart|safe }}
-    {% else %}
-        <div class="empty">No ROI data available</div>
-    {% endif %}
-
-</div>
-
-<!-- TRADE LOG BELOW ROI -->
-<div class="card">
-    <h3>📋 Trade Logs</h3>
-
-    {% if result.trades %}
-    <table>
-        <tr>
-            <th>Type</th>
-            <th>Entry</th>
-            <th>Exit</th>
-            <th>PnL</th>
-        </tr>
-
-        {% for t in result.trades %}
-        <tr>
-            <td class="{% if t.type == 'BUY' %}green{% else %}red{% endif %}">
-                {{ t.type }}
-            </td>
-            <td>{{ t.entry }}</td>
-            <td>{{ t.exit }}</td>
-            <td class="{% if t.pnl > 0 %}green{% else %}red{% endif %}">
-                {{ t.pnl }}
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% else %}
-        <div class="empty">No trades executed</div>
-    {% endif %}
-</div>
-</div>
-
-<!-- MODAL -->
-<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8);">
-
-<div style="background:#0f172a; width:500px; margin:80px auto; padding:20px; border-radius:12px;">
-
-<h3>Run Backtest</h3>
-
-<form method="get" action="{% url 'run_backtest' %}">
-
-<label>Investment</label>
-<input type="number" name="investment" value="1000">
-
-<hr>
-
-<h4>EMA Settings</h4>
-
-EMA 8 <input type="number" name="ema_8" value="8"><br>
-EMA 14 <input type="number" name="ema_14" value="14"><br>
-EMA 50 <input type="number" name="ema_50" value="50"><br>
-
-<hr>
-
-<h4>Alligator</h4>
-
-Lips:
-Period <input type="number" name="lips_period" value="5">
-Shift <input type="number" name="lips_shift" value="3"><br>
-
-Teeth:
-Period <input type="number" name="teeth_period" value="8">
-Shift <input type="number" name="teeth_shift" value="5"><br>
-
-Jaw:
-Period <input type="number" name="jaw_period" value="13">
-Shift <input type="number" name="jaw_shift" value="8"><br>
-
-
-<br><br>
-
-<button type="submit" class="btn">Run</button>
-<button type="button" onclick="closeModal()">Cancel</button>
-
-</form>
-
-</div>
 </div>
 
 <script>
@@ -313,11 +438,5 @@ function closeModal() {
     document.getElementById("modal").style.display = "none";
 }
 </script>
-<script id="u1">
-setInterval(() => {
-    location.reload();
-}, 60000);  // refresh every 1 minutes
-</script>
-
 </body>
 </html>
