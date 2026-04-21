@@ -20,6 +20,16 @@ class MarketData(models.Model):
     exit_time = models.DateTimeField(null=True, blank=True)
     exit_type = models.CharField(max_length=20, null=True, blank=True)
     exit_price = models.FloatField(null=True, blank=True)
-
     def __str__(self):
         return f"{self.stock} {self.date}"
+
+class BacktestResult(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    chart = models.TextField()
+    roi_chart = models.TextField(null=True, blank=True)
+    total_pnl = models.FloatField()
+    win_rate = models.FloatField()
+    
+    def __str__(self):
+        return f"Backtest {self.created_at}"
+    

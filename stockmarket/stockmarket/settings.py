@@ -45,8 +45,16 @@ INSTALLED_APPS = [
     'stocks',
     'members',
     'vedant',
-    'yukta',
+    'yukta.apps.YuktaConfig',
+    'django_dramatiq',
 ]
+
+DRAMATIQ_BROKER = {
+    "BROKER": "dramatiq.brokers.redis.RedisBroker",
+    "OPTIONS": {
+        "url": "redis://127.0.0.1:6379/0",
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

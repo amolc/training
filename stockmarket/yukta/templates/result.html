@@ -1,7 +1,8 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-<title>Result</title>
+<title>Backtest Dashboard</title>
 
 <style>
 body {
@@ -20,9 +21,7 @@ body {
     border-right:1px solid #1e293b;
 }
 
-.sidebar h2 {
-    color:#38bdf8;
-}
+.sidebar h2 { color:#38bdf8; }
 
 .sidebar a {
     display:block;
@@ -72,14 +71,21 @@ body {
     background:#0f172a;
     padding:20px;
     border-radius:12px;
-    margin-bottom:20px;
+    margin-bottom:25px;
+}
+
+/* ROI SPECIAL */
+.roi-card {
+    background: linear-gradient(135deg,#022c22,#020617);
+    border:1px solid #064e3b;
 }
 
 /* STATS */
 .stats {
     display:flex;
     gap:15px;
-    margin-bottom:15px;
+    margin-bottom:20px;
+    flex-wrap:wrap;
 }
 
 .stat {
@@ -87,18 +93,12 @@ body {
     background:#020617;
     padding:15px;
     border-radius:10px;
+    min-width:150px;
 }
 
 .stat h4 {
     color:#94a3b8;
     margin-bottom:5px;
-}
-
-/* GRID */
-.grid {
-    display:grid;
-    grid-template-columns: 2fr 1fr;
-    gap:20px;
 }
 
 /* TABLE */
@@ -110,13 +110,11 @@ table {
 th, td {
     padding:10px;
     border-bottom:1px solid #1e293b;
-    text-align:left;
 }
 
 .green { color:#22c55e; }
 .red { color:#ef4444; }
 
-/* EMPTY STATE */
 .empty {
     color:#64748b;
     text-align:center;
@@ -138,15 +136,21 @@ th, td {
 <!-- MAIN -->
 <div class="main">
 
-<!-- TOPBAR -->
+<!-- TOP BAR -->
 <div class="topbar">
     <div class="strategy">
         {{ result.strategy|default:"EMA Alligator Strategy" }}
     </div>
 
-    <form action="{% url 'run_backtest' %}">
-        <button class="btn">🔄 Run Backtest</button>
-    </form>
+    <div style="color:#22c55e; font-size:14px;">
+        Last Updated:
+        {% if latest %}
+            {{ latest.created_at|date:"Y-m-d H:i:s" }}
+        {% else %}
+            No data yet
+        {% endif %}
+    </div>
+    <button class="btn" onclick="openModal()">🔄 Run Backtest</button>
 </div>
 
 <!-- PRICE CHART -->
@@ -155,83 +159,165 @@ th, td {
 
     <div class="stats">
         <div class="stat">
-            <h4>ROI (Overall)</h4>
+            <h4>ROI</h4>
             <p class="{% if result.roi_overall > 0 %}green{% else %}red{% endif %}">
-                {{ result.roi_overall|default:0 }}%
+                {{ result.roi_overall }}%
             </p>
         </div>
 
         <div class="stat">
             <h4>Win Rate</h4>
-            <p>{{ result.win_rate|default:0 }}%</p>
+            <p>{{ result.win_rate }}%</p>
         </div>
 
         <div class="stat">
             <h4>Total PnL</h4>
             <p class="{% if result.total_pnl > 0 %}green{% else %}red{% endif %}">
-                {{ result.total_pnl|default:0 }}
+                {{ result.total_pnl }}
             </p>
         </div>
 
         <div class="stat">
             <h4>Trades</h4>
-            <p>{{ result.total_trades|default:0 }}</p>
+            <p>{{ result.total_trades }}</p>
         </div>
     </div>
 
-    {% if result.chart %}
-        {{ result.chart|safe }}
-    {% else %}
-        <div class="empty">No chart data available</div>
-    {% endif %}
+    {{ result.chart|safe }}
 </div>
 
-<!-- LOWER GRID -->
-<div class="grid">
+<!-- ROI DASHBOARD -->
+<div class="card roi-card">
+
+    <h3>📊 ROI Graph</h3>
+    <p style="color:#94a3b8;">The cumulative ROI from start</p>
+
+    <div class="stats">
+
+        <div class="stat">
+            <h4>ROI (Overall)</h4>
+            <p class="{% if result.roi_overall > 0 %}green{% else %}red{% endif %}">
+                {{ result.roi_overall }}%
+            </p>
+        </div>
+
+        <div class="stat">
+            <h4>Total PnL</h4>
+            <p class="{% if result.total_pnl > 0 %}green{% else %}red{% endif %}">
+                {{ result.total_pnl }}
+            </p>
+        </div>
+
+        <div class="stat">
+            <h4>Strategy Runs</h4>
+            <p class="green">
+                {{ result.total_trades }}
+            </p>
+        </div>
+
+    </div>
 
     <!-- ROI GRAPH -->
-    <div class="card">
-        <h3>📊 ROI Graph</h3>
-
-        {% if result.roi_chart %}
-            {{ result.roi_chart|safe }}
-        {% else %}
-            <div class="empty">No ROI data available</div>
-        {% endif %}
-    </div>
-
-    <!-- TRADE LOG -->
-    <div class="card">
-        <h3>📋 Trade Logs</h3>
-
-        {% if result.trades %}
-        <table>
-            <tr>
-                <th>Type</th>
-                <th>Entry</th>
-                <th>Exit</th>
-                <th>PnL</th>
-            </tr>
-
-            {% for t in result.trades %}
-            <tr>
-                <td>{{ t.type }}</td>
-                <td>{{ t.entry }}</td>
-                <td>{{ t.exit }}</td>
-                <td class="{% if t.pnl > 0 %}green{% else %}red{% endif %}">
-                    {{ t.pnl }}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        {% else %}
-            <div class="empty">No trades executed</div>
-        {% endif %}
-    </div>
+    {% if result.roi_chart %}
+        {{ result.roi_chart|safe }}
+    {% else %}
+        <div class="empty">No ROI data available</div>
+    {% endif %}
 
 </div>
 
+<!-- TRADE LOG BELOW ROI -->
+<div class="card">
+    <h3>📋 Trade Logs</h3>
+
+    {% if result.trades %}
+    <table>
+        <tr>
+            <th>Type</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>PnL</th>
+        </tr>
+
+        {% for t in result.trades %}
+        <tr>
+            <td class="{% if t.type == 'BUY' %}green{% else %}red{% endif %}">
+                {{ t.type }}
+            </td>
+            <td>{{ t.entry }}</td>
+            <td>{{ t.exit }}</td>
+            <td class="{% if t.pnl > 0 %}green{% else %}red{% endif %}">
+                {{ t.pnl }}
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+        <div class="empty">No trades executed</div>
+    {% endif %}
 </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8);">
+
+<div style="background:#0f172a; width:500px; margin:80px auto; padding:20px; border-radius:12px;">
+
+<h3>Run Backtest</h3>
+
+<form method="get" action="{% url 'run_backtest' %}">
+
+<label>Investment</label>
+<input type="number" name="investment" value="1000">
+
+<hr>
+
+<h4>EMA Settings</h4>
+
+EMA 8 <input type="number" name="ema_8" value="8"><br>
+EMA 14 <input type="number" name="ema_14" value="14"><br>
+EMA 50 <input type="number" name="ema_50" value="50"><br>
+
+<hr>
+
+<h4>Alligator</h4>
+
+Lips:
+Period <input type="number" name="lips_period" value="5">
+Shift <input type="number" name="lips_shift" value="3"><br>
+
+Teeth:
+Period <input type="number" name="teeth_period" value="8">
+Shift <input type="number" name="teeth_shift" value="5"><br>
+
+Jaw:
+Period <input type="number" name="jaw_period" value="13">
+Shift <input type="number" name="jaw_shift" value="8"><br>
+
+
+<br><br>
+
+<button type="submit" class="btn">Run</button>
+<button type="button" onclick="closeModal()">Cancel</button>
+
+</form>
+
+</div>
+</div>
+
+<script>
+function openModal() {
+    document.getElementById("modal").style.display = "block";
+}
+function closeModal() {
+    document.getElementById("modal").style.display = "none";
+}
+</script>
+<script id="u1">
+setInterval(() => {
+    location.reload();
+}, 60000);  // refresh every 1 minutes
+</script>
 
 </body>
 </html>
